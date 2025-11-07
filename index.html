@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OTR Driver Application</title>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <script>
+    (function(){
+      // Replace with your EmailJS user/public key (from EmailJS dashboard)
+      emailjs.init("YOUR_PUBLIC_KEY");
+    })();
+  </script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f2f2f2; }
+    .container { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; }
+    input, select, textarea { width: 100%; margin: 6px 0 16px 0; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    label { font-weight: bold; display:block; margin-bottom:6px; }
+    .row { display: flex; gap: 12px; }
+    .col { flex: 1; }
+    button { padding: 12px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+    button:disabled { background: #9bd39b; cursor: not-allowed; }
+    button:hover:not(:disabled) { background-color: #45a049; }
+    #confirmation { display:none; color: green; font-weight: bold; margin-top: 20px; text-align: center; }
+    .error { color: #c0392b; font-size: 0.95em; margin-top: -10px; margin-bottom: 10px; display:none; }
+    .hint { font-size: 0.9em; color:#666; margin-top:-10px; margin-bottom:10px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>OTR Driver Application</h1>
+
+    <form id="driverForm" aria-describedby="form-instructions" enctype="multipart/form-data" novalidate>
+      <p id="form-instructions" class="hint">Iltimos, barcha majburiy maydonlarni to'ldiring. CDL / Medical / Endorsement rasm(lar)ini biriktiring.</p>
+
+      <label for="name">Full Name *</label>
+      <input id="name" name="name" type="text" required aria-required="true" />
+
+      <label for="phone">Phone Number *</label>
+      <input id="phone" name="phone" type="tel" required aria-required="true"
+             pattern="^\+?[0-9\s\-\(\)]{7,20}$"
+             placeholder="+1 555 555 5555" />
+      <div id="phoneError" class="error">Iltimos, telefon raqamingizni toʻgʻri kiriting.</div>
+
+      <label for="email">Email *</label>
+      <input id="email" name="email" type="email" required aria-required="true" />
+      <div id="emailError" class="error">Iltimos, haqiqiy email manzil kiriting.</div>
+
+      <div class="row">
+        <div class="col">
+          <label for="experience">Years OTR Experience *</label>
+          <input id="experience" name="experience" type="number" required min="2" step="1" />
+        </div>
+        <div class="col">
+          <label for="miles">Weekly Miles *</label>
+          <input id="miles" name="miles" type="number" required min="4000" step="1" />
+        </div>
+      </div>
+
+      <label for="trailer">Trailer Type *</label>
+      <input id="trailer" name="trailer" type="text" required />
+
+      <label for="amazon">Amazon Experience *</label>
+      <select id="amazon" name="amazon" required>
+        <option value="">Select</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+
+      <div class="row">
+        <div class="col">
+          <label for="lastCompany">Last Company *</label>
+          <input id="lastCompany" name="lastCompany" type="text" required />
+        </div>
+        <div class="col">
+          <label for="location">Location *</label>
+          <input id="location" name="location" type="text" required />
+        </div>
+      </div>
+
+      <label for="zipcode">Zip Code *</label>
+      <input id="zipcode" name="zipcode" type="text" required pattern="^[0-9A-Za-z\- ]{3,10}$" />
+      <div class="hint">Zip code may be alphanumeric depending on country.</div>
+
+      <label for="cdl">CDL + Medical + Endorsement (attach images / PDF) *</label>
+      <!-- EmailJS sendForm can handle file inputs; name "attachment" will map to the template file field -->
+      <input id="cdl" name="attachment" type="file" required accept="image/*,.pdf" multiple aria-required="true" />
+      <div class="hint">Allowed: JPG/PNG/PDF. Multiple files allowed.</div>
+
+      <!-- Optional additional notes -->
+      <label for="notes">Additional Notes</label>
+      <textarea id="notes" name="notes" rows="4" placeholder="Optional additional details..."></textarea>
+
+      <button id="submitBtn" type="submit">Submit Application</button>
+    </form>
+
+    <div id="confirmation" role="status" aria-live="polite">
+      ✅ Your application has been sent! We will contact you soon.
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('driverForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmation = document.getElementById('confirmation');
+
+    // Client-side validation helper
+    function showError(id, show) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = show ? 'block' : 'none';
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Clear previous errors
+      showError('phoneError', false);
+      showError('emailError', false);
+
+      // Basic validation
+      const phone = form.phone;
+      const email = form.email;
+      if (!phone.checkValidity()) {
+        showError('phoneError', true);
+        phone.focus();
+        return;
+      }
+      if (!email.checkValidity()) {
+        showError('emailError', true);
+        email.focus();
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      // Use emailjs.sendForm to include file attachments.
+      // Replace YOUR_SERVICE_ID and YOUR_TEMPLATE_ID with values from EmailJS dashboard
+      emailjs.sendForm('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', this)
+        .then(function(response) {
+          confirmation.style.display = 'block';
+          form.reset();
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Application';
+          // Optionally hide confirmation after a few seconds
+          setTimeout(() => { confirmation.style.display = 'none'; }, 10000);
+        }, function(error) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Application';
+          alert('Email yuborishda xatolik yuz berdi, keyinroq urinib ko‘ring. (Error: ' + (error && error.text ? error.text : 'unknown') + ')');
+        });
+    });
+  </script>
+</body>
+</html>
